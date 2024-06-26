@@ -15,21 +15,25 @@ class Conv_Block(nn.Module):
 
     def forward(self, x):
         x = self.relu(self.conv1(x))
+        #print(f"After conv1: {x.shape}")
         #x = self.batchNorm(x)
         x = self.relu(self.conv2(x))
+        #print(f"After conv2: {x.shape}")
         #x = self.batchNorm(x)
         x = self.relu(self.conv3(x))
+        #print(f"After conv3: {x.shape}")
         #x = self.batchNorm(x)
         return x
 
 class Conv_Block_Last(nn.Module):
     def __init__(self, Cin, Cout, k):
         super(Conv_Block_Last, self).__init__()
-        self.conv = nn.Conv2d(Cin, Cout, k, padding=k//2)
+        self.conv = nn.Conv2d(Cin, Cout, k, padding=1)
         self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.relu(self.conv(x))
+        #print(f"After last conv: {x.shape}")
         return x
 
 class MP2D(nn.Module):
@@ -38,7 +42,9 @@ class MP2D(nn.Module):
         self.pool = nn.MaxPool2d(k, stride=stride)
 
     def forward(self, x):
-        return self.pool(x)
+        x = self.pool(x)
+        #print(f"After MaxPool: {x.shape}")
+        return x
 
 class model(nn.Module):
     def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
@@ -73,7 +79,8 @@ class model(nn.Module):
             MP2D(2, (2, 2)),
             Conv_Block(64, 64, 3),
             MP2D(2, (2, 2)),
-            Conv_Block_Last(64, 128, 3)
+            Conv_Block_Last(64, 128, 3),
+            nn.Flatten()
         )
 
     def createAudioModel(self):
@@ -86,7 +93,8 @@ class model(nn.Module):
             MP2D(2, (2, 1)),
             Conv_Block(64, 64, 3),
             MP2D(2, (2, 1)),
-            Conv_Block_Last(64, 128, 3)
+            Conv_Block_Last(64, 128, 3),
+            nn.Flatten()
         )
 
 
@@ -95,8 +103,7 @@ class model(nn.Module):
 
     def createFCModel(self):
         self.fcModel = nn.Sequential(
-            nn.Flatten(),
-            nn.Linear(41472, 512),
+            nn.Linear(45824, 512),
             nn.ReLU(),
             nn.Linear(512, 128),
             nn.ReLU(),
@@ -127,10 +134,9 @@ class model(nn.Module):
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                # print('audio embed shape: ', audioEmbed.shape)
+                #print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
-                visualEmbed = F.interpolate(visualEmbed, size=(18, 9), mode='bilinear', align_corners=False)
-                # print('visual embed shape: ', visualEmbed.shape)
+                #print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)
@@ -173,7 +179,6 @@ class model(nn.Module):
                 
                 audioEmbed = self.audioModel(audioFeatures)
                 visualEmbed = self.visualModel(visualFeatures)
-                visualEmbed = F.interpolate(visualEmbed, size=(18, 9), mode='bilinear', align_corners=False)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
             
