@@ -3,7 +3,7 @@ import argparse
 import torch
 from model import *
 from dataLoader_Image_audio import train_loader, val_loader
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 def parser():
     args = argparse.ArgumentParser(description="ASD Trainer")
@@ -14,7 +14,7 @@ def parser():
     args.add_argument('--testInterval', type=int, default=1, help='Test and save every [testInterval] epochs')
     args.add_argument('--batchSize', type=int, default=128, help='Dynamic batch size, default is 500 frames.')
     args.add_argument('--nDataLoaderThread', type=int, default=4, help='Number of loader threads')
-    args.add_argument('--datasetPath', type=str, default="/notebooks/AVDIAR_ASD/", help='Path to the ASD Dataset')
+    args.add_argument('--datasetPath', type=str, default="/Users/sathvikyechuri/Downloads/AVDIAR_ASD_FTLim", help='Path to the ASD Dataset')
     args.add_argument('--loadAudioSeconds', type=float, default=3, help='Number of seconds of audio to load for each training sample')
     args.add_argument('--loadNumImages', type=int, default=1, help='Number of images to load for each training sample')
     args.add_argument('--savePath', type=str, default="exps/exp1")
@@ -94,17 +94,17 @@ def main(args):
 
     scoreFile.close()
 
-    # Plotting the loss, mAP, and accuracy
-    epochs = list(range(1, epoch + 1))
-    plt.figure()
-    plt.plot(epochs, losses, label='Loss')
-    plt.plot(epochs, mAPs, label='mAP')
-    plt.plot(epochs, accuracies, label='Accuracy')
-    plt.xlabel('Epochs')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.title('Training Loss, mAP, and Accuracy over Epochs')
-    plt.show()
+    # # Plotting the loss, mAP, and accuracy
+    # epochs = list(range(1, epoch + 1))
+    # plt.figure()
+    # plt.plot(epochs, losses, label='Loss')
+    # plt.plot(epochs, mAPs, label='mAP')
+    # plt.plot(epochs, accuracies, label='Accuracy')
+    # plt.xlabel('Epochs')
+    # plt.ylabel('Value')
+    # plt.legend()
+    # plt.title('Training Loss, mAP, and Accuracy over Epochs')
+    # plt.show()
 
 if __name__ == "__main__":
     args = parser()

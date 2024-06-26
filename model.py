@@ -10,7 +10,7 @@ class Conv_Block(nn.Module):
         self.conv1 = nn.Conv2d(Cin, Cout, k, padding=k//2)
         self.conv2 = nn.Conv2d(Cout, Cout, k, padding=k//2)
         self.conv3 = nn.Conv2d(Cout, Cout, k, padding=k//2)
-        self.batchNorm = BN2D()
+        self.batchNorm = nn.BatchNorm2d(Cout)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -40,14 +40,6 @@ class MP2D(nn.Module):
     def forward(self, x):
         return self.pool(x)
 
-class BN2D(nn.Module):
-    def __init__(self):
-        super(BN2D, self).__init__()
-        self.batchNorm = nn.BatchNorm2d(3)
-    
-    def forward(self, x):
-        return self.batchNorm(x)
-
 class model(nn.Module):
     def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
         super(model, self).__init__()
@@ -75,25 +67,25 @@ class model(nn.Module):
         
     def createVisualModel(self):
         self.visualModel = nn.Sequential(
-            Conv_Block(1,32,3),
-            MP2D(2,(2,1)),
-            Conv_Block(32,64,3),
-            MP2D(2,(2,1)),
-            Conv_Block(64,64,3),
-            MP2D(2,(2,1)),
+            Conv_Block(1, 32, 3),
+            MP2D(2, (2, 2)),
+            Conv_Block(32, 64, 3),
+            MP2D(2, (2, 2)),
+            Conv_Block(64, 64, 3),
+            MP2D(2, (2, 2)),
             Conv_Block_Last(64, 128, 3)
         )
 
     def createAudioModel(self):
         self.audioModel = nn.Sequential(
-            Conv_Block(1,32,3),
-            MP2D(2,(2,1)),
-            Conv_Block(32,64,3),
-            MP2D(2,(2,1)),
-            Conv_Block(64,64,3),
-            MP2D(2,(2,1)),
-            Conv_Block(64,64,3),
-            MP2D(2,(2,1)),
+            Conv_Block(1, 32, 3),
+            MP2D(2, (2, 1)),
+            Conv_Block(32, 64, 3),
+            MP2D(2, (2, 1)),
+            Conv_Block(64, 64, 3),
+            MP2D(2, (2, 1)),
+            Conv_Block(64, 64, 3),
+            MP2D(2, (2, 1)),
             Conv_Block_Last(64, 128, 3)
         )
 
@@ -104,6 +96,8 @@ class model(nn.Module):
     def createFCModel(self):
         self.fcModel = nn.Sequential(
             nn.Flatten(),
+            nn.Linear(41472, 512),
+            nn.ReLU(),
             nn.Linear(512, 128),
             nn.ReLU(),
             #nn.Dropout(p=0.3),
@@ -114,7 +108,6 @@ class model(nn.Module):
         )
     
     def train_network(self, loader, epoch, **kwargs):
-        
         self.train()
         self.scheduler.step(epoch-1)
         lr = self.optim.param_groups[0]['lr']
@@ -136,6 +129,7 @@ class model(nn.Module):
                 audioEmbed = self.audioModel(audioFeatures)
                 # print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
+                visualEmbed = F.interpolate(visualEmbed, size=(18, 9), mode='bilinear', align_corners=False)
                 # print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
@@ -181,7 +175,7 @@ class model(nn.Module):
                 visualEmbed = self.visualModel(visualFeatures)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
-                
+            
                 fcOutput = self.fcModel(avfusion)
                 
                 nloss = self.loss_fn(fcOutput, labels)
