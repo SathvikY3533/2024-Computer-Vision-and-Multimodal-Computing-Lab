@@ -7,9 +7,9 @@ import time, tqdm
 class Conv_Block(nn.Module):
     def __init__(self, Cin, Cout, k):
         super(Conv_Block, self).__init__()
-        self.conv1 = nn.Conv2d(Cin, Cout, k, padding=k//2)
-        self.conv2 = nn.Conv2d(Cout, Cout, k, padding=k//2)
-        self.conv3 = nn.Conv2d(Cout, Cout, k, padding=k//2)
+        self.conv1 = nn.Conv2d(Cin, Cout, k, padding=1)
+        self.conv2 = nn.Conv2d(Cout, Cout, k, padding=1)
+        self.conv3 = nn.Conv2d(Cout, Cout, k, padding=1)
         self.batchNorm = nn.BatchNorm2d(Cout)
         self.relu = nn.ReLU()
 
@@ -173,6 +173,7 @@ class model(nn.Module):
                 
                 audioEmbed = self.audioModel(audioFeatures)
                 visualEmbed = self.visualModel(visualFeatures)
+                visualEmbed = F.interpolate(visualEmbed, size=(18, 9), mode='bilinear', align_corners=False)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
             
