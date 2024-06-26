@@ -4,6 +4,50 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time, tqdm
 
+class Conv_Block(nn.Module):
+    def __init__(self, Cin, Cout, k):
+        super(Conv_Block, self).__init__()
+        self.conv1 = nn.Conv2d(Cin, Cout, k, padding=k//2)
+        self.conv2 = nn.Conv2d(Cout, Cout, k, padding=k//2)
+        self.conv3 = nn.Conv2d(Cout, Cout, k, padding=k//2)
+        self.batchNorm = BN2D()
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.conv1(x))
+        #x = self.batchNorm(x)
+        x = self.relu(self.conv2(x))
+        #x = self.batchNorm(x)
+        x = self.relu(self.conv3(x))
+        #x = self.batchNorm(x)
+        return x
+
+class Conv_Block_Last(nn.Module):
+    def __init__(self, Cin, Cout, k):
+        super(Conv_Block_Last, self).__init__()
+        self.conv = nn.Conv2d(Cin, Cout, k, padding=k//2)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.conv(x))
+        return x
+
+class MP2D(nn.Module):
+    def __init__(self, k, stride):
+        super(MP2D, self).__init__()
+        self.pool = nn.MaxPool2d(k, stride=stride)
+
+    def forward(self, x):
+        return self.pool(x)
+
+class BN2D(nn.Module):
+    def __init__(self):
+        super(BN2D, self).__init__()
+        self.batchNorm = nn.BatchNorm2d(3)
+    
+    def forward(self, x):
+        return self.batchNorm(x)
+
 class model(nn.Module):
     def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
         super(model, self).__init__()
@@ -31,21 +75,27 @@ class model(nn.Module):
         
     def createVisualModel(self):
         self.visualModel = nn.Sequential(
-            nn.Flatten(), 
-            nn.Linear(112*112, 512), 
-            nn.ReLU(), 
-            nn.Linear(512, 256), 
-            nn.ReLU(), 
-            nn.Linear(256, 128))
+            Conv_Block(1,32,3),
+            MP2D(2,(2,1)),
+            Conv_Block(32,64,3),
+            MP2D(2,(2,1)),
+            Conv_Block(64,64,3),
+            MP2D(2,(2,1)),
+            Conv_Block_Last(64, 128, 3)
+        )
 
     def createAudioModel(self):
         self.audioModel = nn.Sequential(
-            nn.Flatten(), 
-            nn.Linear(299*13, 512), 
-            nn.ReLU(), 
-            nn.Linear(512, 256), 
-            nn.ReLU(), 
-            nn.Linear(256, 128))
+            Conv_Block(1,32,3),
+            MP2D(2,(2,1)),
+            Conv_Block(32,64,3),
+            MP2D(2,(2,1)),
+            Conv_Block(64,64,3),
+            MP2D(2,(2,1)),
+            Conv_Block(64,64,3),
+            MP2D(2,(2,1)),
+            Conv_Block_Last(64, 128, 3)
+        )
 
 
     def createFusionModel(self):
@@ -53,11 +103,15 @@ class model(nn.Module):
 
     def createFCModel(self):
         self.fcModel = nn.Sequential(
-            nn.Linear(256, 128), 
-            nn.ReLU(), 
-            nn.Linear(128,64), 
-            nn.ReLU(), 
-            nn.Linear(64, 2))
+            nn.Flatten(),
+            nn.Linear(512, 128),
+            nn.ReLU(),
+            #nn.Dropout(p=0.3),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            #nn.Dropout(p=0.3),
+            nn.Linear(128, 2)
+        )
     
     def train_network(self, loader, epoch, **kwargs):
         
