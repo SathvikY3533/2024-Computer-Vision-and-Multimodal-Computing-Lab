@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import time, tqdm
 
 class model(nn.Module):
-    def __init__(self, lr=0.0001, lrDecay=0.95, **kwargs):
+    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
         super(model, self).__init__()
 
         self.visualModel = None
@@ -13,7 +13,7 @@ class model(nn.Module):
         self.fusionModel = None
         self.fcModel = None
 
-        self.device='cpu'
+        self.device = ("cuda" if torch.cuda.is_available() else 'cpu')
 
         self.createVisualModel()
         self.createAudioModel()
@@ -30,17 +30,34 @@ class model(nn.Module):
         self.loss_fn = nn.CrossEntropyLoss()
         
     def createVisualModel(self):
-        self.visualModel = nn.Sequential(nn.Flatten(), nn.Linear(112*112, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
+        self.visualModel = nn.Sequential(
+            nn.Flatten(), 
+            nn.Linear(112*112, 512), 
+            nn.ReLU(), 
+            nn.Linear(512, 256), 
+            nn.ReLU(), 
+            nn.Linear(256, 128))
 
     def createAudioModel(self):
-        self.audioModel = nn.Sequential(nn.Flatten(), nn.Linear(299*13, 512), nn.ReLU(), nn.Linear(512, 256), nn.ReLU(), nn.Linear(256, 128))
+        self.audioModel = nn.Sequential(
+            nn.Flatten(), 
+            nn.Linear(299*13, 512), 
+            nn.ReLU(), 
+            nn.Linear(512, 256), 
+            nn.ReLU(), 
+            nn.Linear(256, 128))
 
 
     def createFusionModel(self):
         pass
 
     def createFCModel(self):
-        self.fcModel = nn.Sequential(nn.Linear(256, 128), nn.ReLU(), nn.Linear(128,64), nn.ReLU(), nn.Linear(64, 2))
+        self.fcModel = nn.Sequential(
+            nn.Linear(256, 128), 
+            nn.ReLU(), 
+            nn.Linear(128,64), 
+            nn.ReLU(), 
+            nn.Linear(64, 2))
     
     def train_network(self, loader, epoch, **kwargs):
         
