@@ -1,10 +1,11 @@
 import os, glob, time
 import argparse
+import torch
 from model import *
 from dataLoader_Image_audio import train_loader, val_loader
+import matplotlib.pyplot as plt
 
 def parser():
-
     args = argparse.ArgumentParser(description="ASD Trainer")
 
     args.add_argument("--lr", type=float, default=0.0001, help="Learning Rate")
@@ -26,70 +27,85 @@ def parser():
     return args
 
 def main(args):
-
-    loader = train_loader(trialFileName = os.path.join(args.datasetPath, 'csv/train_loader.csv'), \
-                          audioPath      = os.path.join(args.datasetPath , 'clips_audios/'), \
-                          visualPath     = os.path.join(args.datasetPath, 'clips_videos/train'), \
+    loader = train_loader(trialFileName=os.path.join(args.datasetPath, 'csv/train_loader.csv'), 
+                          audioPath=os.path.join(args.datasetPath , 'clips_audios/'), 
+                          visualPath=os.path.join(args.datasetPath, 'clips_videos/train'), 
                           **vars(args))
-    trainLoader = torch.utils.data.DataLoader(loader, batch_size = args.batchSize, shuffle = True, num_workers = args.nDataLoaderThread)
+    trainLoader = torch.utils.data.DataLoader(loader, batch_size=args.batchSize, shuffle=True, num_workers=args.nDataLoaderThread)
 
-    loader = val_loader(trialFileName = os.path.join(args.datasetPath, 'csv/val_loader.csv'), \
-                        audioPath     = os.path.join(args.datasetPath , 'clips_audios'), \
-                        visualPath    = os.path.join(args.datasetPath, 'clips_videos', args.evalDataType), \
+    loader = val_loader(trialFileName=os.path.join(args.datasetPath, 'csv/val_loader.csv'), 
+                        audioPath=os.path.join(args.datasetPath , 'clips_audios'), 
+                        visualPath=os.path.join(args.datasetPath, 'clips_videos', args.evalDataType), 
                         **vars(args))
-    valLoader = torch.utils.data.DataLoader(loader, batch_size = args.batchSize, shuffle = False, num_workers = 4)
+    valLoader = torch.utils.data.DataLoader(loader, batch_size=args.batchSize, shuffle=False, num_workers=4)
     
     if args.evaluation == True:
         s = model(**vars(args))
 
-        if args.eval_model_path=="path not specified":
+        if args.eval_model_path == "path not specified":
             print('Evaluation model parameters path has not been specified')
             quit()
         
         s.loadParameters(args.eval_model_path)
         print("Parameters loaded from path ", args.eval_model_path)
-        mAP = s.evaluate_network(loader = valLoader, **vars(args))
-        print("mAP %2.2f%%"%(mAP))
+        mAP, accuracy = s.evaluate_network(loader=valLoader, **vars(args))
+        print("mAP %2.2f%%, Accuracy %2.2f%%" % (mAP, accuracy))
         quit()    
     
     # Either loads a previous checkpoint or starts training from scratch
     args.modelSavePath = os.path.join(args.savePath, 'model')
     os.makedirs(args.modelSavePath, exist_ok=True)
-    args.scoreSavePath    = os.path.join(args.savePath, 'score.txt')
-    modelfiles = glob.glob('%s/model_0*.model'%args.modelSavePath)
+    args.scoreSavePath = os.path.join(args.savePath, 'score.txt')
+    modelfiles = glob.glob('%s/model_0*.model' % args.modelSavePath)
     modelfiles.sort()  
     if len(modelfiles) >= 1:
-        print("Model %s loaded from previous state!"%modelfiles[-1])
+        print("Model %s loaded from previous state!" % modelfiles[-1])
         epoch = int(os.path.splitext(os.path.basename(modelfiles[-1]))[0][6:]) + 1
-        s = model(epoch = epoch, **vars(args))
+        s = model(epoch=epoch, **vars(args))
         s.loadParameters(modelfiles[-1])
     else:
         epoch = 1
-        s = model(epoch = epoch, **vars(args))
+        s = model(epoch=epoch, **vars(args))
 
     mAPs = []
+    losses = []
+    accuracies = []
     scoreFile = open(args.scoreSavePath, "a+")
     bestmAP = 0
-    while(1):        
-        loss, lr = s.train_network(epoch = epoch, loader = trainLoader, **vars(args))
+    while True:
+        loss, lr = s.train_network(epoch=epoch, loader=trainLoader, **vars(args))
+        losses.append(loss)
         
         if epoch % args.testInterval == 0:        
-            
-            mAPs.append(s.evaluate_network(epoch = epoch, loader = valLoader, **vars(args)))
-            if mAPs[-1] > bestmAP:
-                bestmAP = mAPs[-1]
+            mAP, accuracy = s.evaluate_network(epoch=epoch, loader=valLoader, **vars(args))
+            mAPs.append(mAP)
+            accuracies.append(accuracy)
+            if mAP > bestmAP:
+                bestmAP = mAP
                 s.saveParameters(args.modelSavePath + "/best.model")
-            print(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, mAP %2.2f%%, bestmAP %2.2f%%"%(epoch, mAPs[-1], max(mAPs)))
-            scoreFile.write("%d epoch, LR %f, LOSS %f, mAP %2.2f%%, bestmAP %2.2f%%\n"%(epoch, lr, loss, mAPs[-1], max(mAPs)))
+            print(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%" % (epoch, mAP, accuracy, max(mAPs)))
+            scoreFile.write("%d epoch, LR %f, LOSS %f, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%\n" % (epoch, lr, loss, mAP, accuracy, max(mAPs)))
             scoreFile.flush()
 
         if epoch >= args.maxEpoch:
-            quit()
+            break
 
         epoch += 1
 
-if __name__=="__main__":
+    scoreFile.close()
 
+    # Plotting the loss, mAP, and accuracy
+    epochs = list(range(1, epoch + 1))
+    plt.figure()
+    plt.plot(epochs, losses, label='Loss')
+    plt.plot(epochs, mAPs, label='mAP')
+    plt.plot(epochs, accuracies, label='Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.title('Training Loss, mAP, and Accuracy over Epochs')
+    plt.show()
+
+if __name__ == "__main__":
     args = parser()
-
     main(args)
