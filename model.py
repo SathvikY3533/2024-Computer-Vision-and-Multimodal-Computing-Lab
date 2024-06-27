@@ -164,7 +164,9 @@ class model(nn.Module):
         
     def evaluate_network(self, loader, **kwargs):
         self.eval()
-        predScores = []
+        
+        all_labels = []
+        all_preds = []
         
         loss, top1, index, numBatches = 0, 0, 0, 0
         
@@ -191,10 +193,19 @@ class model(nn.Module):
                 index += len(labels)
                 numBatches += 1
                 
+                all_labels.extend(labels.cpu().numpy())
+                all_preds.extend(fcOutput[:, 1].cpu().numpy())  # Assuming positive class is at index 1
+        
+        all_labels = np.array(all_labels)
+        all_preds = np.array(all_preds)
+        
+        precision, recall, _ = precision_recall_curve(all_labels, all_preds)
+        mAP = average_precision_score(all_labels, all_preds)
+        
         print('eval loss ', loss/numBatches)
         print('eval accuracy ', top1/index)
+        print('eval mAP ', mAP)
         
-        mAP = 0.0  # Placeholder for mAP calculation
         accuracy = top1 / index
         
         return mAP, accuracy

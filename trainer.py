@@ -3,7 +3,8 @@ import argparse
 import torch
 from model import *
 from dataLoader_Image_audio import train_loader, val_loader
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+from sklearn.metrics import precision_recall_curve, average_precision_score
 
 def parser():
     args = argparse.ArgumentParser(description="ASD Trainer")
@@ -39,6 +40,19 @@ def main(args):
                         **vars(args))
     valLoader = torch.utils.data.DataLoader(loader, batch_size=args.batchSize, shuffle=False, num_workers=4)
     
+    if args.evaluation == True:
+        s = model(**vars(args))
+
+        if args.eval_model_path == "path not specified":
+            print('Evaluation model parameters path has not been specified')
+            quit()
+        
+        s.loadParameters(args.eval_model_path)
+        print("Parameters loaded from path ", args.eval_model_path)
+        mAP, accuracy = s.evaluate_network(loader=valLoader, **vars(args))
+        print("mAP %2.2f%%, Accuracy %2.2f%%" % (mAP, accuracy))
+        quit() 
+
     args.modelSavePath = os.path.join(args.savePath, 'model')
     os.makedirs(args.modelSavePath, exist_ok=True)
     args.scoreSavePath = os.path.join(args.savePath, 'score.txt')
