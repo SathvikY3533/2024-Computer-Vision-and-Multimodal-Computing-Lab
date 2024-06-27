@@ -194,7 +194,10 @@ class model(nn.Module):
         print('eval loss ', loss/numBatches)
         print('eval accuracy ', top1/index)
         
-        return top1/index
+        mAP = 0.0  # Placeholder for mAP calculation
+        accuracy = top1 / index
+        
+        return mAP, accuracy
 
     def saveParameters(self, path):
         torch.save(self.state_dict(), path)

@@ -39,20 +39,6 @@ def main(args):
                         **vars(args))
     valLoader = torch.utils.data.DataLoader(loader, batch_size=args.batchSize, shuffle=False, num_workers=4)
     
-    if args.evaluation == True:
-        s = model(**vars(args))
-
-        if args.eval_model_path == "path not specified":
-            print('Evaluation model parameters path has not been specified')
-            quit()
-        
-        s.loadParameters(args.eval_model_path)
-        print("Parameters loaded from path ", args.eval_model_path)
-        mAP, accuracy = s.evaluate_network(loader=valLoader, **vars(args))
-        print("mAP %2.2f%%, Accuracy %2.2f%%" % (mAP, accuracy))
-        quit()    
-    
-    # Either loads a previous checkpoint or starts training from scratch
     args.modelSavePath = os.path.join(args.savePath, 'model')
     os.makedirs(args.modelSavePath, exist_ok=True)
     args.scoreSavePath = os.path.join(args.savePath, 'score.txt')
