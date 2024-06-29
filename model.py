@@ -18,13 +18,13 @@ class Conv_Block(nn.Module):
     def forward(self, x):
         x = self.relu(self.conv1(x))
         #print(f"After conv1: {x.shape}")
-        #x = self.batchNorm(x)
+        x = self.batchNorm(x)
         x = self.relu(self.conv2(x))
         #print(f"After conv2: {x.shape}")
-        #x = self.batchNorm(x)
+        x = self.batchNorm(x)
         x = self.relu(self.conv3(x))
         #print(f"After conv3: {x.shape}")
-        #x = self.batchNorm(x)
+        x = self.batchNorm(x)
         return x
 
 class Conv_Block_Last(nn.Module):
@@ -75,7 +75,7 @@ class model(nn.Module):
         
     def createVisualModel(self):
         self.visualModel = nn.Sequential(
-            Conv_Block(1, 32, 3),
+            Conv_Block(3, 32, 3),
             MP2D(2, (2, 2)),
             Conv_Block(32, 64, 3),
             MP2D(2, (2, 2)),
@@ -94,7 +94,7 @@ class model(nn.Module):
             Conv_Block(64, 64, 3),
             MP2D(2, (2, 1)),
             Conv_Block(64, 64, 3),
-            MP2D(2, (2, 1)),
+            MP2D(2, (2, 2)),
             Conv_Block_Last(64, 128, 3),
             nn.Flatten()
         )
@@ -107,10 +107,8 @@ class model(nn.Module):
         self.fcModel = nn.Sequential(
             nn.Linear(45824, 512),
             nn.ReLU(),
-            nn.Linear(512, 128),
-            nn.ReLU(),
             nn.Dropout(p=0.3),
-            nn.Linear(128, 128),
+            nn.Linear(512, 128),
             nn.ReLU(),
             nn.Dropout(p=0.3),
             nn.Linear(128, 2)
