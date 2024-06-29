@@ -90,8 +90,9 @@ def main(args):
             if mAP > bestmAP:
                 bestmAP = mAP
                 s.saveParameters(args.modelSavePath + "/best.model")
-            print(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%" % (epoch, mAP, accuracy, max(mAPs)))
-            scoreFile.write(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, LR %f, LOSS %f, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%\n" % (epoch, lr, loss, mAP, accuracy, max(mAPs)))
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            print(f"{timestamp}, {epoch} epoch, mAP {mAP:.2f}%, Accuracy {accuracy:.2f}%, bestmAP {max(mAPs):.2f}%")
+            scoreFile.write(f"{timestamp}, {epoch} epoch, LR {lr:.6f}, LOSS {loss:.6f}, mAP {mAP:.2f}%, Accuracy {accuracy:.2f}%, bestmAP {max(mAPs):.2f}%\n")
             scoreFile.flush()
 
         if epoch >= args.maxEpoch:
