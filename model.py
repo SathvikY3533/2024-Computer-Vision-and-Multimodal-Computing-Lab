@@ -49,11 +49,11 @@ class MP2D(nn.Module):
         return x
 
 class model(nn.Module):
-    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', **kwargs):
+    def __init__(self, lr=0.0001, lrDecay=0.95, device='gpu', visual_model=None, audio_model=None, **kwargs):
         super(model, self).__init__()
 
-        self.visualModel = None
-        self.audioModel = None
+        self.visualModel = visual_model
+        self.audioModel = audio_model
         self.fusionModel = None
         self.fcModel = None
 

@@ -5,6 +5,7 @@ from model import *
 from dataLoader_Image_audio import train_loader, val_loader
 import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_curve, average_precision_score
+import torchvggish
 
 def parser():
     args = argparse.ArgumentParser(description="ASD Trainer")
@@ -22,6 +23,7 @@ def parser():
     args.add_argument('--evalDataType', type=str, default="val", help='The dataset for evaluation, val or test')
     args.add_argument('--evaluation', dest='evaluation', action='store_true', help='Only do evaluation')
     args.add_argument('--eval_model_path', type=str, default="path not specified", help="model path for evaluation")
+    args.add_argument('--enableVGG', type=bool, default="False", help="use VGG model? True or False")
 
     args = args.parse_args()
 
@@ -65,7 +67,12 @@ def main(args):
         s.loadParameters(modelfiles[-1])
     else:
         epoch = 1
-        s = model(epoch=epoch, **vars(args))
+        if args.enableVGG:
+            visual_model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True)
+            audio_model = torchvggish.vggish()
+            s = model(epoch=epoch, visual_model=visual_model, audio_model=audio_model, **vars(args))
+        else:
+            s = model(epoch=epoch, **vars(args))
 
     mAPs = []
     losses = []
@@ -84,7 +91,7 @@ def main(args):
                 bestmAP = mAP
                 s.saveParameters(args.modelSavePath + "/best.model")
             print(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%" % (epoch, mAP, accuracy, max(mAPs)))
-            scoreFile.write("%d epoch, LR %f, LOSS %f, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%\n" % (epoch, lr, loss, mAP, accuracy, max(mAPs)))
+            scoreFile.write(time.strftime("%Y-%m-%d %H:%M:%S"), "%d epoch, LR %f, LOSS %f, mAP %2.2f%%, Accuracy %2.2f%%, bestmAP %2.2f%%\n" % (epoch, lr, loss, mAP, accuracy, max(mAPs)))
             scoreFile.flush()
 
         if epoch >= args.maxEpoch:
