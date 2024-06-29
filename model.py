@@ -109,10 +109,10 @@ class model(nn.Module):
             nn.ReLU(),
             nn.Linear(512, 128),
             nn.ReLU(),
-            #nn.Dropout(p=0.3),
+            nn.Dropout(p=0.3),
             nn.Linear(128, 128),
             nn.ReLU(),
-            #nn.Dropout(p=0.3),
+            nn.Dropout(p=0.3),
             nn.Linear(128, 2)
         )
     
