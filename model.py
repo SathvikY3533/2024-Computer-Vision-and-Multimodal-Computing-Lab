@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import time, tqdm
 import numpy as np
 from sklearn.metrics import precision_recall_curve, average_precision_score
+import trainer
 
 class Conv_Block(nn.Module):
     def __init__(self, Cin, Cout, k):
@@ -57,6 +58,11 @@ class model(nn.Module):
         self.fusionModel = None
         self.fcModel = None
 
+        if 'enableVGG' in kwargs:
+            self.enableVGG = kwargs['enableVGG']
+        else:
+            self.enableVGG = False
+
         self.device = ("cuda" if torch.cuda.is_available() else 'cpu')
 
         self.createVisualModel()
@@ -75,7 +81,7 @@ class model(nn.Module):
         
     def createVisualModel(self):
         self.visualModel = nn.Sequential(
-            Conv_Block(3, 32, 3),
+            Conv_Block(1, 32, 3),
             MP2D(2, (2, 2)),
             Conv_Block(32, 64, 3),
             MP2D(2, (2, 2)),
@@ -104,8 +110,11 @@ class model(nn.Module):
         pass
 
     def createFCModel(self):
+        i = 45824
+        if self.enableVGG == "True":
+            i = 36608
         self.fcModel = nn.Sequential(
-            nn.Linear(45824, 512),
+            nn.Linear(i, 512),
             nn.ReLU(),
             nn.Dropout(p=0.3),
             nn.Linear(512, 128),
