@@ -5,6 +5,7 @@ from model import *
 from dataLoader_Image_audio import train_loader, val_loader
 import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_curve, average_precision_score
+import torchvision.models as models
 
 def parser():
     args = argparse.ArgumentParser(description="ASD Trainer")
@@ -109,10 +110,8 @@ def main(args):
     # plt.show()
 
 if __name__ == "__main__":
-    vggish = torchvggish.vggish()
-    print(vggish)
-    #vgg = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True)
-    #print(vgg)
-    #sys.exit()
+    # vgg = models.vgg16(pretrained=True)
+    # print(vgg)
+    # sys.exit()
     args = parser()
     main(args)

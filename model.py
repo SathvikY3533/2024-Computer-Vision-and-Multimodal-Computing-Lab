@@ -87,6 +87,7 @@ class model(nn.Module):
     def createVisualModel(self):
         if(self.enableVGG == "True"):
             vgg = models.vgg16(pretrained=True)
+            vgg.features[0] = nn.Conv2d(1, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
             vgg = nn.Sequential(*list(vgg.features.children()))
             self.visualModel = nn.Sequential(vgg, nn.Flatten())
         else:
