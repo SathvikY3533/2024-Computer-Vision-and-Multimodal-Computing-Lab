@@ -6,6 +6,9 @@ import time, tqdm
 import numpy as np
 from sklearn.metrics import precision_recall_curve, average_precision_score
 import trainer
+import warnings
+
+warnings.filterwarnings("ignore")
 
 class Conv_Block(nn.Module):
     def __init__(self, Cin, Cout, k):
@@ -65,8 +68,9 @@ class model(nn.Module):
 
         self.device = ("cuda" if torch.cuda.is_available() else 'cpu')
 
-        self.createVisualModel()
-        self.createAudioModel()
+        if(self.enableVGG != "True"):
+            self.createVisualModel()
+            self.createAudioModel()
         self.createFusionModel()
         self.createFCModel()
         
@@ -81,7 +85,7 @@ class model(nn.Module):
         
     def createVisualModel(self):
         self.visualModel = nn.Sequential(
-            Conv_Block(1, 32, 3),
+            Conv_Block(5, 32, 3),
             MP2D(2, (2, 2)),
             Conv_Block(32, 64, 3),
             MP2D(2, (2, 2)),
@@ -110,9 +114,7 @@ class model(nn.Module):
         pass
 
     def createFCModel(self):
-        i = 45824
-        if self.enableVGG == "True":
-            i = 36608
+        i = 2
         self.fcModel = nn.Sequential(
             nn.Linear(i, 512),
             nn.ReLU(),
@@ -131,21 +133,20 @@ class model(nn.Module):
         for num, (audioFeatures, visualFeatures, labels) in enumerate(loader, start=1):
                 self.zero_grad()
 
-                # print('audioFeatures shape: ', audioFeatures.shape)
-                # print('visualFeatures shape: ', visualFeatures.shape)
-                # print('labels shape: ', labels.shape)
-                
+                print('audioFeatures shape: ', audioFeatures.shape)
+                print('visualFeatures shape: ', visualFeatures.shape)
+                print('labels shape: ', labels.shape)
                 audioFeatures = torch.unsqueeze(audioFeatures, dim=1)  
-                # print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
+                print('audioFeatures after unsqueeze: ', audioFeatures.shape)            
                 
                 audioFeatures = audioFeatures.to(self.device)
                 visualFeatures = visualFeatures.to(self.device)
                 labels = labels.squeeze().to(self.device)
                                 
                 audioEmbed = self.audioModel(audioFeatures)
-                #print('audio embed shape: ', audioEmbed.shape)
+                print('audio embed shape: ', audioEmbed.shape)
                 visualEmbed = self.visualModel(visualFeatures)
-                #print('visual embed shape: ', visualEmbed.shape)
+                print('visual embed shape: ', visualEmbed.shape)
                 
                 avfusion = torch.cat((audioEmbed, visualEmbed), dim=1)
                 # print('avfusion shape: ', avfusion.shape)

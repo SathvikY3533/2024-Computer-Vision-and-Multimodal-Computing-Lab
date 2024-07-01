@@ -7,6 +7,39 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_curve, average_precision_score
 import torchvggish
 
+class CustomVGG(nn.Module):
+    def __init__(self):
+        super(CustomVGG, self).__init__()
+        self.vgg = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True)
+        self.vgg.features[0] = nn.Conv2d(2, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+
+    def forward(self, x):
+        print("Input to VGG:", x.size())
+        x = self.vggish.features(x)
+        print("After VGG features:", x.size())
+        x = x.view(x.size(0), -1)
+        x = self.vggish.embeddings(x)
+        return x
+
+class CustomVGGish(nn.Module):
+    def __init__(self):
+        super(CustomVGGish, self).__init__()
+        self.vggish = torchvggish.vggish()
+        self.vggish.features[2] = nn.MaxPool2d(kernel_size=2, stride=1, padding=1)
+        self.vggish.features[5] = nn.MaxPool2d(kernel_size=2, stride=1, padding=1)
+        self.vggish.features[10] = nn.MaxPool2d(kernel_size=2, stride=1, padding=1)
+        self.vggish.features[15] = nn.MaxPool2d(kernel_size=2, stride=1, padding=1)
+
+        self.vggish.embeddings[0] = nn.Linear(in_features=2637312, out_features=4096, bias=True)
+
+    def forward(self, x):
+        print("Input to VGGish:", x.size())
+        x = self.vggish.features(x)
+        print("After VGGish features:", x.size())
+        x = x.view(x.size(0), -1)
+        x = self.vggish.embeddings(x)
+        return x
+
 def parser():
     args = argparse.ArgumentParser(description="ASD Trainer")
 
@@ -67,8 +100,8 @@ def main(args):
     else:
         epoch = 1
         if args.enableVGG == "True":
-            visual_model = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True)
-            audio_model = torchvggish.vggish()
+            visual_model = CustomVGG()
+            audio_model = CustomVGGish()
             s = model(epoch=epoch, visual_model=visual_model, audio_model=audio_model, **vars(args))
         else:
             s = model(epoch=epoch, **vars(args))
@@ -114,5 +147,10 @@ def main(args):
     # plt.show()
 
 if __name__ == "__main__":
+    vggish = torchvggish.vggish()
+    print(vggish)
+    #vgg = torch.hub.load('pytorch/vision:v0.10.0', 'vgg16', pretrained=True)
+    #print(vgg)
+    #sys.exit()
     args = parser()
     main(args)
